@@ -5,12 +5,13 @@ Module for preprocessing EEG data for OCD classification.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, Optional, Tuple, Union, Any
 
-import numpy as np
 import mne
+import numpy as np
 from mne.preprocessing import ICA
 from sklearn.preprocessing import StandardScaler
+
 from ocd_classification.preprocessing.wavelet import apply_wavelet_transform, extract_wavelet_features
 
 logger = logging.getLogger(__name__)
