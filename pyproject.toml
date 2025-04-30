@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "ocd_classification"
+version = "0.1.0"
+description = "EEG-based OCD classification project"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "ocd_classification", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.13"
+mne = "^1.9.0"
+torch = "^2.7.0"
+matplotlib = "^3.10.1"
+seaborn = "^0.13.2"
+scikit-learn = "^1.6.1"
+pandas = "^2.2.3"
+numpy = "^2.2.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+black = "^23.3.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
