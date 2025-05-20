@@ -55,6 +55,16 @@ python -m ocd_classification.main --config config.yaml --data_dir /path/to/test_
 python -m ocd_classification.main --config config.yaml --data_dir /path/to/new_data --output_dir ./output --mode predict
 ```
 
+### Using the Evaluation Script
+
+The project includes a dedicated script for evaluating OCD classification by providing paths to control and OCD group data:
+
+```bash
+python notebooks/ocd_evaluation.py --control /path/to/control/group/data --ocd /path/to/ocd/group/data --output ./output
+```
+
+See the [notebooks/README.md](notebooks/README.md) for more details on using this script.
+
 ## Data Format
 
 The project expects EEG data in EDF format. For training and evaluation, a `labels.csv` file should be provided in the data directory with columns for `subject_id` and `label`.
@@ -72,6 +82,9 @@ data/
 
 ```
 ocd_classification/
+├── notebooks/
+│   ├── ocd_evaluation.py            # Script for evaluating OCD classification
+│   └── README.md                    # Documentation for notebooks
 ├── src/
 │   └── ocd_classification/
 │       ├── data/
