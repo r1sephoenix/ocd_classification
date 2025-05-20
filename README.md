@@ -1,129 +1,97 @@
-# OCD Classification from EEG Data
+# OCD‑EEG Classification Pipeline
 
-This project implements a deep learning-based approach for classifying Obsessive-Compulsive Disorder (OCD) from electroencephalogram (EEG) data. It uses convolutional neural networks (CNNs) to analyze EEG signals and identify patterns associated with OCD.
+Deep‑learning **and** classical‑ML framework for detecting Obsessive‑Compulsive
+Disorder from EEG recordings in **BrainVision** format (`*.vhdr/*.eeg/*.vmrk`).
 
-## Features
+---
+## Highlights
 
-- EEG data loading and preprocessing pipeline
-- Wavelet transform for feature extraction
-- Multiple CNN architectures (1D, 2D, and 3D) for different data representations
-- Support for both subject-based and standard data splitting
-- Comprehensive evaluation metrics
-- Prediction capabilities for new data
+* **Flexible loader:** recordings split into class folders (`CONTROL/`, `OCD/`).
+* **Stratified subject split** with leakage‑free train / val / test.
+* End‑to‑end **notebooks**: `ocd_pipeline_nb.ipynb` (train → eval).
+* Feature extraction: epoching + multitaper **PSD** (1–40 Hz).
+* Choice of models
+  * 3‑D / 2‑D / 1‑D **CNN** (`EEGCNN`, `EEG3DCNN`)
+  * **MLP** for flat features
+  * Logistic Reg., SVM, RandomForest + **Optuna‑tuned LightGBM**.
+* Metrics: accuracy, F1, ROC‑AUC, confusion matrix; JSON‑export via `save_results`.
 
+---
 ## Installation
-
-This project uses Poetry for dependency management. To install:
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd ocd_classification
+# clone
+$ git clone https://github.com/<you>/ocd_classification.git
+$ cd ocd_classification
 
-# Install dependencies with Poetry
-poetry install
+# install deps (Python ≥3.9) – Poetry recommended
+$ poetry install --with dev
 ```
 
-### Requirements
+Main external deps: `mne`, `torch`, `lightgbm`, `optuna`, `scikit‑learn`.
 
-- Python 3.13 or higher
-- Dependencies (automatically installed by Poetry):
-  - mne (EEG data processing)
-  - torch (deep learning)
-  - matplotlib and seaborn (visualization)
-  - scikit-learn (machine learning utilities)
-  - pandas (data manipulation)
-  - numpy (numerical operations)
+---
+## Quick start
 
-## Usage
-
-### Training a Model
-
-```bash
-python -m ocd_classification.main --config config.yaml --data_dir /path/to/data --output_dir ./output --mode train
-```
-
-### Evaluating a Model
-
-```bash
-python -m ocd_classification.main --config config.yaml --data_dir /path/to/test_data --output_dir ./output --mode evaluate
-```
-
-### Making Predictions
-
-```bash
-python -m ocd_classification.main --config config.yaml --data_dir /path/to/new_data --output_dir ./output --mode predict
-```
-
-### Using the Evaluation Script
-
-The project includes a dedicated script for evaluating OCD classification by providing paths to control and OCD group data:
-
-```bash
-python notebooks/ocd_evaluation.py --control /path/to/control/group/data --ocd /path/to/ocd/group/data --output ./output
-```
-
-See the [notebooks/README.md](notebooks/README.md) for more details on using this script.
-
-## Data Format
-
-The project expects EEG data in EDF format. For training and evaluation, a `labels.csv` file should be provided in the data directory with columns for `subject_id` and `label`.
-
-Example data directory structure:
+### 1  Prepare data structure
 ```
 data/
-├── subject1.edf
-├── subject2.edf
-├── subject3.edf
-└── labels.csv
+├── CONTROL/
+│   ├── sub01.vhdr
+│   └── …
+└── OCD/
+    ├── sub11.vhdr
+    └── …
+```
+*BrainVision sidecars (`.eeg/.vmrk`) must sit next to `.vhdr`.*
+
+### 2  Train + evaluate via CLI
+```bash
+poetry run python -m ocd_classification.main \
+    data           \
+    --output out   \
+    --mode train
+
+poetry run python -m ocd_classification.main \
+    data           \
+    --output out   \
+    --mode evaluate
+```
+Config overrides live in `config.yaml`; see `config-example.yaml` for
+all knobs (model sizes, Optuna trials, etc.).
+
+### 3  Predict on new subjects
+```bash
+poetry run python -m ocd_classification.main \
+    new_data --output out --mode predict
+# → out/predictions.csv
 ```
 
-## Project Structure
+### 4  Interactive notebook
+Open **`notebooks/ocd_pipeline_nb.ipynb`** – runs full pipeline in Jupyter.
 
+---
+## Repository layout
 ```
 ocd_classification/
-├── notebooks/
-│   ├── ocd_evaluation.py            # Script for evaluating OCD classification
-│   └── README.md                    # Documentation for notebooks
-├── src/
-│   └── ocd_classification/
-│       ├── data/
-│       │   └── data_loader.py       # EEG data loading functionality
-│       ├── models/
-│       │   ├── cnn_model.py         # CNN model architectures
-│       │   ├── evaluate.py          # Model evaluation utilities
-│       │   └── train.py             # Model training utilities
-│       ├── preprocessing/
-│       │   ├── preprocess.py        # EEG preprocessing pipeline
-│       │   └── wavelet.py           # Wavelet transform utilities
-│       ├── utils/                   # Utility functions
-│       ├── visualization/           # Visualization utilities
-│       └── main.py                  # Main entry point
-├── pyproject.toml                   # Project configuration
-└── README.md                        # This file
+├── data_loader.py       # load_dataset + split_dataset
+├── preprocess.py        # PSD features, no splitting
+├── trainers/
+│   ├── nn_trainer.py    # CNN / MLP training
+│   └── ml_trainer.py    # Grid/Random + Optuna‑LGBM
+├── evaluate.py          # metrics + JSON helpers
+├── main.py              # CLI entry‑point
+└── models/              # EEGCNN, EEG3DCNN, EEGMLP
+notebooks/
+└── ocd_pipeline_nb.ipynb
 ```
 
-## Model Architecture
+---
+## Pre‑processing details
+* **Drop channels:** `FT9`, `empty`, blank‑named.
+* **Epoching:** default −0.2 s → 0.8 s around events `S10/S20/S30` (configurable).
+* **Power spectra:** multitaper PSD, log‑power (dB).
+* Optional z‑score normalisation via `normalize_data`.
 
-The project implements multiple CNN architectures:
-
-1. **EEGCNN**: A flexible CNN that can handle both:
-   - 1D data (time series)
-   - 2D data (time-frequency representations)
-
-2. **EEG3DCNN**: A 3D CNN for more complex EEG data representations
-
-Both models use convolutional layers followed by max pooling, and then fully connected layers with dropout for regularization. The final output is a sigmoid activation for binary classification (OCD vs. non-OCD).
-
-## Preprocessing Pipeline
-
-The preprocessing pipeline includes:
-- Filtering (bandpass, notch)
-- Artifact removal
-- Independent Component Analysis (ICA)
-- Wavelet transform for feature extraction
-- Standardization
-
+---
 ## License
-
-[MIT]
+[MIT](LICENSE)
