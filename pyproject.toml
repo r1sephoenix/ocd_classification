@@ -18,6 +18,7 @@ numpy = "^2.2.5"
 pywavelets = "^1.8.0"
 lightgbm = "^4.6.0"
 optuna = "^4.3.0"
+notebook = "^7.4.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"

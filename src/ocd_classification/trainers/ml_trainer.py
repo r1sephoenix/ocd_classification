@@ -3,20 +3,18 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Mapping
 
+import lightgbm as lgb
 import numpy as np
+import optuna
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.metrics import f1_score
 from sklearn.model_selection import (
-    GridSearchCV,
-    RandomizedSearchCV,
     StratifiedKFold,
 )
+from sklearn.svm import SVC
 
 from ocd_classification.utils.utils import flatten_data
-import lightgbm as lgb
-import optuna
 
 log = logging.getLogger(__name__)
 

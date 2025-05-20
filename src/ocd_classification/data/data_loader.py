@@ -98,8 +98,8 @@ def split_dataset(
 ) -> Tuple[Dict[str, object], Dict[str, object], Dict[str, object]]:
     """Stratified subject-level split.
 
-    * If `n_subjects` ≤ 4 → fallback 2‑1‑1 (train/val/test).
-    * Else → два вызова `train_test_split` c `stratify` на уровне субъектов.
+    * If `n_subjects` <=4 → fallback 2‑1‑1 (train/val/test).
+    * Else →  `train_test_split` with `stratify`.
     """
     subj_ids = np.asarray(data["subject_ids"], dtype=str)
     labels_arr = np.asarray(
@@ -112,15 +112,29 @@ def split_dataset(
     rng_state = random_state
 
     if n_subj <= 4:
-        # deterministic small split -------------------------------------------------
         rng = np.random.RandomState(rng_state)
-        perm = rng.permutation(unique_subj)
-        train_subj = perm[: max(2, n_subj - 2)]
-        remain = perm[len(train_subj) :]
-        val_subj = remain[:1] if len(remain) > 1 else []
-        test_subj = remain[1:] if len(remain) > 1 else remain
+        class0 = [s for s, lbl in zip(unique_subj, subj_labels) if lbl == 0]
+        class1 = [s for s, lbl in zip(unique_subj, subj_labels) if lbl == 1]
+        rng.shuffle(class0)
+        rng.shuffle(class1)
+
+        if class0 and class1:
+            train_subj = [class0.pop(), class1.pop()]
+
+            val_subj = []
+            if class0:
+                val_subj.append(class0.pop())
+            if class1:
+                val_subj.append(class1.pop())
+
+            val_subj.extend(class0 + class1)
+        else:
+            perm = rng.permutation(unique_subj)
+            train_subj = perm[: max(2, n_subj - 2)]
+            val_subj = perm[len(train_subj) :]
+
+        test_subj = val_subj
     else:
-        # stratified subject-level split -------------------------------------------
         try:
             train_val_subj, test_subj, y_train_val, y_test = train_test_split(
                 unique_subj,
@@ -138,7 +152,6 @@ def split_dataset(
                 stratify=y_train_val,
             )
         except ValueError:
-            # Fallback to group split w/out stratifying
             train_m, val_m, test_m = split_by_subjects(
                 subj_ids,
                 test_size=test_size,

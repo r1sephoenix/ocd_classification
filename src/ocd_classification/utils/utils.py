@@ -1,38 +1,3 @@
-"""
-Utility helpers for OCD EEG classification.
-
-This module is intentionally framework‑agnostic: no code here depends on
-`nn_trainer.py` or the model definitions.  Everything should be import‑able from
-scripts, notebooks or unit tests without pulling heavy deps.
-
-Key parts
---------------
-
-Ensure_same_shape
-    Broadcast / reshape two tensors so that their shapes match.  Helps to avoid
-    repetitive `view()` logic in the training loop.
-
-AverageMeter
-    Tiny class for running (weighted) average of a metric.
-
-Compute_binary_accuracy
-    Vectorized accuracy for logits or probabilities in [0,1].
-
-SubjectBatchSampler
-    Sampler that groups all examples from the same subject together while still
-    randomizing subject order every epoch.
-
-Split_by_subjects
-    Convenience wrapper around ``GroupShuffleSplit`` to obtain boolean masks for
-    train / val / test so that no subject leaks across splits.
-
-Flatten_data
-    Reshape an N‑dimensional feature tensor to 2‑D ``(n_samples, n_features)``.
-
-You are welcome to extend the module, but please keep it dependency‑light
-(sk‑learn and torch are already heavy enough!).
-"""
-
 from __future__ import annotations
 
 import math
@@ -43,13 +8,16 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import BatchSampler, Sampler, SubsetRandomSampler
 
-def ensure_same_shape(a: torch.Tensor, b: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+
+def ensure_same_shape(
+    a: torch.Tensor, b: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Make ``a`` and ``b`` broadcast‑compatible (identical ``shape``) by reshaping
     whichever tensor is “thinner.”
 
     Examples
     --------
-    >>> y   = torch.randint(0, 2, (64,))          # (N,)
+    >>> y = torch.randint(0, 2, (64,))          # (N,)
     >>> out = torch.rand(64, 1)                   # (N, 1)
     >>> y2, out2 = ensure_same_shape(y, out)
     >>> y2.shape, out2.shape
@@ -74,14 +42,13 @@ def ensure_same_shape(a: torch.Tensor, b: torch.Tensor) -> Tuple[torch.Tensor, t
     return a, b
 
 
-# --------------------------------------------------------------------------- #
-# metrics                                                                     #
-# --------------------------------------------------------------------------- #
-
 class AverageMeter:
     """Keeps running sum / count so that you can print epoch metrics succinctly."""
 
     def __init__(self) -> None:
+        self.avg = None
+        self.sum = None
+        self.count = None
         self.reset()
 
     def reset(self) -> None:
@@ -103,10 +70,6 @@ def compute_binary_accuracy(outputs: torch.Tensor, targets: torch.Tensor) -> flo
     preds = (outputs > 0.5).float()
     return (preds == targets).float().mean().item()
 
-
-# --------------------------------------------------------------------------- #
-# subject‑aware utilities                                                     #
-# --------------------------------------------------------------------------- #
 
 class SubjectBatchSampler(Sampler[List[int]]):
     """Yield batches that never mix subjects."""
@@ -153,10 +116,6 @@ def split_by_subjects(
     test_mask = np.isin(subject_ids, test_subjects)
     return train_mask, val_mask, test_mask
 
-
-# --------------------------------------------------------------------------- #
-# misc                                                                        #
-# --------------------------------------------------------------------------- #
 
 def flatten_data(x: np.ndarray) -> np.ndarray:
     """Reshape ``x`` to ``(n_samples, -1)`` for classical ML algorithms."""
